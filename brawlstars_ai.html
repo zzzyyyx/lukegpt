@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Brawl Stars AI</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Nunito+Sans:wght@400;600&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #1a0533 0%, #2d0f5e 50%, #1a0533 100%);
+      font-family: 'Nunito Sans', sans-serif;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 24px;
+      margin-top: 10px;
+    }
+
+    .header h1 {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 900;
+      font-size: 2.2rem;
+      color: #ffe44d;
+      text-shadow: 0 3px 0 #b8860b, 0 6px 12px rgba(0,0,0,0.5);
+      letter-spacing: 1px;
+    }
+
+    .header p {
+      color: #c9a8ff;
+      font-size: 0.95rem;
+      margin-top: 6px;
+    }
+
+    .star-icon { font-size: 1.6rem; }
+
+    .chat-box {
+      width: 100%;
+      max-width: 680px;
+      background: rgba(255,255,255,0.05);
+      border: 2px solid rgba(255,228,77,0.3);
+      border-radius: 20px;
+      padding: 20px;
+      min-height: 300px;
+      max-height: 460px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .chat-box::-webkit-scrollbar { width: 6px; }
+    .chat-box::-webkit-scrollbar-thumb { background: #ffe44d55; border-radius: 10px; }
+
+    .message {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      animation: popIn 0.25s ease;
+    }
+
+    @keyframes popIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .message.user { flex-direction: row-reverse; }
+
+    .avatar {
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem;
+      flex-shrink: 0;
+    }
+
+    .avatar.ai-avatar  { background: linear-gradient(135deg, #7c3aed, #c026d3); }
+    .avatar.usr-avatar { background: linear-gradient(135deg, #f59e0b, #ef4444); }
+
+    .bubble {
+      padding: 11px 15px;
+      border-radius: 16px;
+      font-size: 0.95rem;
+      line-height: 1.55;
+      max-width: 80%;
+    }
+
+    .message.ai   .bubble { background: rgba(124,58,237,0.35); border: 1px solid rgba(192,38,211,0.4); }
+    .message.user .bubble { background: rgba(245,158,11,0.25); border: 1px solid rgba(239,68,68,0.4); text-align: right; }
+
+    .bubble .label {
+      font-family: 'Nunito', sans-serif;
+      font-weight: 800;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+      opacity: 0.8;
+    }
+
+    .message.ai   .bubble .label { color: #c084fc; }
+    .message.user .bubble .label { color: #fbbf24; }
+
+    .empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #7c5cbf;
+      gap: 8px;
+      font-size: 0.9rem;
+    }
+
+    .empty-state .big { font-size: 2.5rem; }
+
+    .input-row {
+      width: 100%;
+      max-width: 680px;
+      display: flex;
+      gap: 10px;
+    }
+
+    textarea {
+      flex: 1;
+      background: rgba(255,255,255,0.08);
+      border: 2px solid rgba(255,228,77,0.4);
+      border-radius: 14px;
+      padding: 12px 16px;
+      color: #fff;
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 0.95rem;
+      resize: none;
+      height: 52px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    textarea::placeholder { color: #8a6bac; }
+    textarea:focus { border-color: #ffe44d; }
+
+    button {
+      background: linear-gradient(135deg, #ffe44d, #f59e0b);
+      border: none;
+      border-radius: 14px;
+      padding: 0 20px;
+      font-family: 'Nunito', sans-serif;
+      font-weight: 900;
+      font-size: 1.1rem;
+      color: #1a0533;
+      cursor: pointer;
+      transition: transform 0.1s, opacity 0.2s;
+      white-space: nowrap;
+    }
+
+    button:hover:not(:disabled) { transform: scale(1.05); }
+    button:active:not(:disabled) { transform: scale(0.97); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .typing {
+      display: flex;
+      gap: 5px;
+      padding: 4px 2px;
+    }
+
+    .typing span {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #c084fc;
+      animation: bounce 1.2s infinite;
+    }
+
+    .typing span:nth-child(2) { animation-delay: 0.2s; }
+    .typing span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes bounce {
+      0%, 80%, 100% { transform: translateY(0); opacity: 0.5; }
+      40% { transform: translateY(-6px); opacity: 1; }
+    }
+
+    .suggestions {
+      width: 100%;
+      max-width: 680px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .suggestion-btn {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,228,77,0.25);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 0.8rem;
+      color: #d4b8ff;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: 'Nunito Sans', sans-serif;
+      font-weight: 600;
+    }
+
+    .suggestion-btn:hover {
+      background: rgba(255,228,77,0.12);
+      border-color: rgba(255,228,77,0.5);
+      color: #ffe44d;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="star-icon">⭐🏆⭐</div>
+    <h1>Brawl Stars AI</h1>
+    <p>Ask anything — get answers in Brawl Stars style!</p>
+  </div>
+
+  <div class="suggestions" id="suggestions">
+    <button class="suggestion-btn" onclick="fillQuestion('How does gravity work?')">🌌 How does gravity work?</button>
+    <button class="suggestion-btn" onclick="fillQuestion('What is photosynthesis?')">🌿 What is photosynthesis?</button>
+    <button class="suggestion-btn" onclick="fillQuestion('Explain the internet')">🌐 Explain the internet</button>
+    <button class="suggestion-btn" onclick="fillQuestion('How do airplanes fly?')">✈️ How do airplanes fly?</button>
+  </div>
+
+  <div class="chat-box" id="chatBox">
+    <div class="empty-state" id="emptyState">
+      <div class="big">🎮</div>
+      <div>Ask me anything, Brawler!</div>
+    </div>
+  </div>
+
+  <div class="input-row">
+    <textarea id="questionInput" placeholder="Ask anything, Brawler..." rows="1"></textarea>
+    <button id="sendBtn" onclick="askQuestion()">🏆 Ask</button>
+  </div>
+
+  <script>
+    const SYSTEM_PROMPT = `You are a fun AI assistant that explains EVERYTHING using Brawl Stars references, characters, mechanics, and terms. 
+
+Rules:
+- Use Brawl Stars brawlers (like Shelly, Colt, Spike, Mortis, Leon, etc.) as analogies or examples
+- Reference game modes like Gem Grab, Showdown, Brawl Ball, Heist, etc.
+- Use in-game terms: trophies, power points, star powers, gadgets, super attacks, gems, elixir, boxes
+- Keep it fun, exciting, and easy to understand
+- Start with a Brawl Stars-themed exclamation like "Push those trophies!" or "Drop that super!"
+- Make the explanation genuinely accurate but wrapped in Brawl Stars flavor
+- Use emojis occasionally for flair`;
+
+    let messages = [];
+    let isLoading = false;
+
+    function fillQuestion(q) {
+      document.getElementById('questionInput').value = q;
+      document.getElementById('questionInput').focus();
+    }
+
+    document.getElementById('questionInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        askQuestion();
+      }
+    });
+
+    function addMessage(role, text) {
+      const chatBox = document.getElementById('chatBox');
+      const empty = document.getElementById('emptyState');
+      if (empty) empty.remove();
+
+      const div = document.createElement('div');
+      div.className = `message ${role}`;
+
+      const avatar = document.createElement('div');
+      avatar.className = `avatar ${role === 'ai' ? 'ai-avatar' : 'usr-avatar'}`;
+      avatar.textContent = role === 'ai' ? '🤖' : '🎮';
+
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+
+      const label = document.createElement('div');
+      label.className = 'label';
+      label.textContent = role === 'ai' ? 'Brawl AI' : 'You';
+
+      const content = document.createElement('div');
+      content.textContent = text;
+
+      bubble.appendChild(label);
+      bubble.appendChild(content);
+      div.appendChild(avatar);
+      div.appendChild(bubble);
+      chatBox.appendChild(div);
+      chatBox.scrollTop = chatBox.scrollHeight;
+
+      return content; // return so we can stream into it
+    }
+
+    function addTyping() {
+      const chatBox = document.getElementById('chatBox');
+      const empty = document.getElementById('emptyState');
+      if (empty) empty.remove();
+
+      const div = document.createElement('div');
+      div.className = 'message ai';
+      div.id = 'typingIndicator';
+
+      const avatar = document.createElement('div');
+      avatar.className = 'avatar ai-avatar';
+      avatar.textContent = '🤖';
+
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+
+      const label = document.createElement('div');
+      label.className = 'label';
+      label.textContent = 'Brawl AI';
+
+      const typing = document.createElement('div');
+      typing.className = 'typing';
+      typing.innerHTML = '<span></span><span></span><span></span>';
+
+      bubble.appendChild(label);
+      bubble.appendChild(typing);
+      div.appendChild(avatar);
+      div.appendChild(bubble);
+      chatBox.appendChild(div);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function removeTyping() {
+      const t = document.getElementById('typingIndicator');
+      if (t) t.remove();
+    }
+
+    async function askQuestion() {
+      if (isLoading) return;
+      const input = document.getElementById('questionInput');
+      const question = input.value.trim();
+      if (!question) return;
+
+      input.value = '';
+      isLoading = true;
+      document.getElementById('sendBtn').disabled = true;
+
+      addMessage('user', question);
+      messages.push({ role: 'user', content: question });
+
+      addTyping();
+
+      try {
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 1000,
+            system: SYSTEM_PROMPT,
+            messages: messages
+          })
+        });
+
+        const data = await response.json();
+        removeTyping();
+
+        const reply = data.content?.map(b => b.text || '').join('') || 'Trophy lost! Something went wrong. Try again!';
+        addMessage('ai', reply);
+        messages.push({ role: 'assistant', content: reply });
+
+      } catch (err) {
+        removeTyping();
+        addMessage('ai', '⚠️ Super failed to charge! Check your connection and try again.');
+      }
+
+      isLoading = false;
+      document.getElementById('sendBtn').disabled = false;
+      input.focus();
+    }
+  </script>
+</body>
+</html>
